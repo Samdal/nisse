@@ -1,0 +1,28 @@
+(player
+    -100
+    (hp 2.000000)
+    (items
+        (sword (type weapon) (damage 10))
+        (knife (damage 4))
+        (bow (type weapon) (damage 10) (range 15))
+        (crossbow
+            (type `ranged weapon`)
+            (damage 16)
+            (range 25)
+            (properties poison fire)
+        )
+        (sling (damage 4) (range 3))
+    )
+)
+(items
+    (test)
+    ()
+    (())
+    (sword (damage 10))
+)
+(`v3 array`
+    (1.000000 2.000000 3.000000)
+    (4.000000 5.000000 6.000000)
+    (7.000000 8.000000 9.000000)
+    (10.000000 0.000010 420.690002)
+)
