@@ -77,11 +77,11 @@ extern int nisse_nde_fits_format(nde_t* nde, nde_t* fmt);
 // > will check if anonymous variables have the right type for their given index in nde
 // >                                      (direct index in nde, not like in c literals)
 // > if it is anonymous and fmt has tagged array at that index with a single variable,
-// >                                                       it will check those instead
+// >                                                       it will check them instead
 // else:
 // > check if type is the same
 
-extern nde_t* nisse_nde_get_value(nde_t* nde, int* len); // returns nde->nde + 1 if nde is string
+extern nde_t* nisse_nde_get_value(nde_t* nde, int* len); // returns nde->nde + 1 if nde->nde is string
 extern nde_t* nisse_nde_get_tagged(nde_t* nde, const char* tag);
 extern nde_t* nisse_nde_get_index(nde_t* nde, int index); // has bounds checking
 

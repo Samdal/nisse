@@ -19,8 +19,8 @@ nisse  __
 ### Typesystem:
 - Entries starting with any of `1234567890-.` are interpreted as numbers
   - And if the number contains a `.` it is considered a float
-- Entries starting with \` are a multiline raw string \`like this\`
-  - They can contain raw newlines, does not support escaped characters.
+- Entries starting with \` are a raw strings \`like this\`
+  - They can contain raw new lines and other characters, does not support escaped characters.
 - Entries starting with `(` are arrays, and they are ended with a `)`
 - Other entries are interpreted as whitespace delimited words
 
