@@ -30,7 +30,7 @@ A common behaviour is to have a string as the first element of an array, where t
 ### API
 
 The C library exposes the AST directly, to write to a file you must generate
-one yourself. There are macros and functions to make this step easier
+one yourself. There are macros and functions to make this step easier.
 
 A parsed file returns a generated AST. There are functions that help you 
 verify formats and for getting tagged arrays/variables.
