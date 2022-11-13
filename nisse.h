@@ -11,6 +11,12 @@
 **      Basically you only have "raw" strings
 */
 
+/*
+** TODO:
+** Perhaps some better error messages with line indication and so on.
+** Better programatic error handling.
+*/
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -64,7 +70,7 @@ typedef struct nisse_data_entry_s {
 #define nisse_tndea(__name, __count, ...) nisse_andea(__count + 1, nisse_andes(__name), __VA_ARGS__)
 #define nisse_tndeanl(__name, __count, ...) nisse_andeanl(__count + 1, nisse_andes(__name), __VA_ARGS__)
 
-extern int nisse_nde_fits_format(nde_t* nde, nde_t fmt);
+extern int nisse_nde_fits_format(nde_t* nde, nde_t* fmt);
 // shallow comapre, does not support anonymous string arrays
 // if nde is array:
 // > will check if named structs are present in fmt
@@ -75,8 +81,9 @@ extern int nisse_nde_fits_format(nde_t* nde, nde_t fmt);
 // else:
 // > check if type is the same
 
-extern nde_t* nisse_nde_get_tagged(const nde_t* nde, const char* tag);
-extern nde_t* nisse_nde_get_index(const nde_t* nde, int index); // has bounds checking
+extern nde_t* nisse_nde_get_value(nde_t* nde, int* len); // returns nde->nde + 1 if nde is string
+extern nde_t* nisse_nde_get_tagged(nde_t* nde, const char* tag);
+extern nde_t* nisse_nde_get_index(nde_t* nde, int index); // has bounds checking
 
 extern int nisse_write_to_file(char* filename, const nde_t nde);
 
@@ -109,19 +116,16 @@ nisse_eprintf(const char* fmt, ...)
 #endif // NISSE_NO_ERROR
 
 int
-nisse_nde_fits_format(nde_t* nde, nde_t fmt)
+nisse_nde_fits_format(nde_t* nde, nde_t* fmt)
 {
         if (!nde) return 0;
 
         if (nde->type == NISSE_TYPE_ARRAY) {
                 for (int i = nde->nde_len && nde->nde->type == NISSE_TYPE_STRING; i < nde->nde_len; i++) {
                         if (nde->nde[i].type == NISSE_TYPE_ARRAY && nde->nde[i].nde_len && nde->nde[i].nde->type == NISSE_TYPE_STRING) {
-                                // tagged array
-                                nde_t* res = nisse_nde_get_tagged(&fmt, nde->nde[i].nde->str);
-                                if (!res) return 0;
+                                if (!nisse_nde_get_tagged(fmt, nde->nde[i].nde->str)) return 0;
                         } else {
-                                // untagged
-                                nde_t* res = nisse_nde_get_index(&fmt, i);
+                                nde_t* res = nisse_nde_get_index(fmt, i);
                                 if (!res) return 0;
                                 if (nde->nde[i].type != NISSE_TYPE_ARRAY && res->type == NISSE_TYPE_ARRAY && res->nde_len == 2) {
                                         if (res->nde[1].type != nde->nde[i].type)
@@ -133,25 +137,38 @@ nisse_nde_fits_format(nde_t* nde, nde_t fmt)
                 }
                 return 1;
         }
-        return nde->type == fmt.type;
+        return nde->type == fmt->type;
 }
 
 nde_t*
-nisse_nde_get_tagged(const nde_t* nde, const char* tag)
+nisse_nde_get_value(nde_t* nde, int* len)
 {
-        if (!nde || nde->type != NISSE_TYPE_ARRAY) return NULL;
+        if (!nde) return NULL;
+        if (len) *len = 1;
+        if (nde->type != NISSE_TYPE_ARRAY) return nde;
+
+        if (!nde->nde || nde->nde_len < 2 || nde->nde->type != NISSE_TYPE_STRING) return nde->nde;
+        if (len) *len = nde->nde_len - 1;
+        return nde->nde + 1;
+}
+
+nde_t*
+nisse_nde_get_tagged(nde_t* nde, const char* tag)
+{
+        if (!nde || nde->type != NISSE_TYPE_ARRAY || !nde->nde) return NULL;
 
         for (int i = 0; i < nde->nde_len; i++)
-                if (nde->nde[i].type == NISSE_TYPE_ARRAY && nde->nde[i].nde_len && nde->nde[i].nde->type == NISSE_TYPE_STRING)
+                if (nde->nde[i].type == NISSE_TYPE_ARRAY && nde->nde[i].nde_len && nde->nde[i].nde->type == NISSE_TYPE_STRING) {
                         if (strcmp(tag, nde->nde[i].nde->str) == 0)
                                 return nde->nde + i;
+                }
         return NULL;
 }
 
 nde_t*
-nisse_nde_get_index(const nde_t* nde, int index)
+nisse_nde_get_index(nde_t* nde, int index)
 {
-        if (!nde || nde->type != NISSE_TYPE_ARRAY || index < 0 || index >= nde->nde_len)
+        if (!nde || nde->type != NISSE_TYPE_ARRAY || !nde->nde || index < 0 || index >= nde->nde_len)
                 return NULL;
         return nde->nde + index;
 }
@@ -188,6 +205,10 @@ void nisse_write_nde(FILE* fd, const nde_t* nde, int root, int indents, int new_
         } else if (nde->type == NISSE_TYPE_STRING) {
                 int res = 0;
                 for (int i = 0; i < strlen(nde->str); i++) {
+                        if (i == 0 && memchr("1234567890.-", nde->str[i], sizeof("1234567890.-"))) {
+                                res = 1;
+                                break;
+                        }
                         if (memchr("\n '\t\v()\r", nde->str[i], sizeof("\n '\t\v()\r"))) {
                                 res = 1;
                                 break;
@@ -396,10 +417,12 @@ nisse_dup_nde(nde_t* nde)
 {
         if (nde->type == NISSE_TYPE_STRING) {
                 nde->str = strdup(nde->str);
+                nde->is_str_allocated = 1;
         } else if (nde->type == NISSE_TYPE_ARRAY) {
                 for (int i = 0; i < nde->nde_len; i++) nisse_free_nde(nde->nde + i);
                 nde_t* n = malloc(nde->nde_len * sizeof(*n));
                 memcpy(n, nde->nde, nde->nde_len * sizeof(*n));
+                nde->is_nde_allocated = 1;
         }
 }
 
