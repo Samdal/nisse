@@ -277,7 +277,7 @@ nisse_parse_file(char* filename)
 static int
 nisse_seek_whitespace(char* mem, int index, int sz)
 {
-        while (index < sz && !memchr("\n '\t)\v\r", mem[index], sizeof("\n '\t)\v\r")))
+        while (index < sz && !memchr("\n '\t()\v\r", mem[index], sizeof("\n '\t()\v\r")))
                 index++;
         return index;
 }
@@ -296,7 +296,7 @@ nisse_parse_memory_array(char* mem, int sz, nde_t* nde) {
         while (index < sz) {
                 int last_index = index;
 
-                while (index < sz && memchr("\n '\t\v\r", mem[index], sizeof("\n '\t\v\r")))
+                while (index < sz && memchr("\n \t\v\r", mem[index], sizeof("\n \t\v\r")))
                         index++;
 
                 if (mem[index] == ')') {
