@@ -91,7 +91,7 @@ extern nde_t nisse_parse_file(char* filename);
 extern nde_t nisse_parse_memory(char* mem, int sz);
 
 extern void nisse_free_nde(nde_t* nde);
-void nisse_dup_nde(nde_t* nde);
+extern nde_t nisse_dup_nde(nde_t* nde, int free_old_nde);
 
 
 
@@ -412,18 +412,23 @@ nisse_free_nde(nde_t* nde)
         }
 }
 
-void
-nisse_dup_nde(nde_t* nde)
+nde_t
+nisse_dup_nde(nde_t* nde, int free_old_nde)
 {
         if (nde->type == NISSE_TYPE_STRING) {
-                nde->str = strdup(nde->str);
+                char* str = strdup(nde->str);
+                if (free_old_nde && nde->is_str_allocated) free(nde->str);
                 nde->is_str_allocated = 1;
+                nde->str = str;
         } else if (nde->type == NISSE_TYPE_ARRAY) {
-                for (int i = 0; i < nde->nde_len; i++) nisse_free_nde(nde->nde + i);
                 nde_t* n = malloc(nde->nde_len * sizeof(*n));
                 memcpy(n, nde->nde, nde->nde_len * sizeof(*n));
+                if (free_old_nde && nde->is_nde_allocated) free(nde->nde);
+                nde->nde = n;
                 nde->is_nde_allocated = 1;
+                for (int i = 0; i < nde->nde_len; i++) nisse_dup_nde(nde->nde + i, free_old_nde);
         }
+        return *nde;
 }
 
 #endif // NISSE_IMPL

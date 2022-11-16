@@ -6,7 +6,6 @@
 ** This structure contains enough information for nisse to serialise
 */
 
-nde_t fmt_v3 = nisse_andea(3, nisse_andef(0), nisse_andef(0), nisse_andef(0));
 nde_t fmt_item = nisse_andea(1, nisse_tndea("type", 0,));
 nde_t fmt_ranged = nisse_andea(2, nisse_andea(1, nisse_andes("damage")),
                                   nisse_andea(1, nisse_andes("range")));
@@ -98,6 +97,14 @@ nde_t nde_arr[] = {
 
 #define ARR_SZ(__ARR) sizeof(__ARR) / sizeof(__ARR[0])
 
+static nde_t
+get_v3_fmt()
+{
+        // This would normaly be an error since the compound literals are stack allocated,
+        // but the dup command converts everything to heap allocation.
+        return nisse_dup_nde(&(nde_t)nisse_andea(3, nisse_andef(0), nisse_andef(0), nisse_andef(0)), 1);
+}
+
 int main()
 {
         nde_t test = {.type = NISSE_TYPE_ARRAY, .nde_len = ARR_SZ(nde_arr), .nde = nde_arr};
@@ -139,13 +146,15 @@ int main()
         }
 #endif
 
-
         nde_t* v3a = nisse_nde_get_tagged(&nde, "v3 array");
         assert(v3a);
+        nde_t fmt_v3 = get_v3_fmt();
         for (int i = 1; i < v3a->nde_len; i++)
                 if (!nisse_nde_fits_format(v3a->nde+ i, &fmt_v3))
                         printf("infalid v3 array %d!\n", i);
 
         nisse_write_to_file("./test2.nisse", nde);
+
         nisse_free_nde(&nde);
+        nisse_free_nde(&fmt_v3);
 }
